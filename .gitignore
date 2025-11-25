@@ -1,0 +1,20 @@
+# Backup files
+*.swp
+*.swo
+*~
+.*.sw[a-z]
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local overrides
+*.local
+
+# Vim/Neovim
+.netrwhist
+tags
+
+# Temporary files
+*.tmp
+*.log

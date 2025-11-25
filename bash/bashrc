@@ -1,0 +1,180 @@
+# .bashrc
+# Portable bashrc for public clusters
+# bashrc is for aliases, functions, and shell configuration intended for use in
+# interactive shells. However, in some circumstances, bash sources bashrc even
+# in non-interactive shells (e.g., when using scp), so it is standard practice
+# to check for interactivity at the top of .bashrc and return immediately if
+# the shell is not interactive. The following line does that; don't remove it!
+[[ $- != *i* ]] && return
+
+# Keep oodles of command history
+HISTFILESIZE=-1
+HISTSIZE=1000000
+shopt -s histappend
+
+# Set up personal aliases, functions, etc.
+alias vi=nvim
+
+# FZF integration
+[ -f ~/.fzf.bash ] && source ~/.fzf.bash
+
+# Vi mode for command line
+set -o vi
+
+# Save history immediately
+export PROMPT_COMMAND="history -a; history -n; $PROMPT_COMMAND"
+
+# Editor
+export EDITOR=nvim
+
+# Go binary path
+export PATH=/home/$USER/go/bin/:$PATH
+
+# Rust/Cargo environment
+[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+
+# Aliases
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+alias le='less -R'
+
+# Hugging Face settings
+# export HF_HUB_DISABLE_XET=1
+
+# Go module
+export GO111MODULE=on
+
+# GitHub PR listing function
+# Usage: pr_list [days] [author]
+# Example: pr_list 30 @me
+pr_list() {
+  local days=${1:-14}
+  local author=${2:-@me}
+  local date_ago=$(date -d "${days} days ago" +%Y-%m-%d)
+  local query="updated:>=$date_ago author:$author"
+  gh pr list --state all --search "$query" --json number,title,url,updatedAt,state \
+    --jq '.[] | "* [\(.state | ascii_downcase)] [#\(.number)](\(.url)): \(.title)"'
+}
+
+# Clean cache directories
+clean_cache() {
+  rm -rf /tmp/torchinductor_$(whoami)
+  rm -rf ~/.cache/vllm
+}
+
+# Clean Python/vLLM processes
+clean_process() {
+  pkill -9 -f ".*python.*"
+  pkill -9 -f ".*VLLM.*"
+}
+
+# Extract parameter from file using awk
+# Usage: awk_param file delimiter
+awk_param() {
+  local file=$1
+  local str=$2
+  awk -F"${str}" '{if (NF>1) print $2}' $file | awk -F',' '{print $1}'
+}
+
+# List most recent file
+lf() { ls -t $1 | head -n1; }
+
+# Show with less and colors
+show() { le "$(cat)"; }
+
+# CUDA paths (if CUDA is available)
+if [ -d "/usr/local/cuda" ]; then
+  export CUDA_HOME=/usr/local/cuda
+  export CUDA_INCLUDE_DIRS=$CUDA_HOME/include
+  export CUDA_CUDART_LIBRARY=$CUDA_HOME/lib64/libcudart.so
+  export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
+  export PATH=$CUDA_HOME/bin:$PATH
+fi
+
+# vLLM Profiling Functions
+# Usage: vllm_profile_start [host:port]
+# Usage: vllm_profile_stop [host:port]
+
+vllm_profile_start() {
+  local endpoint="${1:-localhost:8000}"
+  local url="http://${endpoint}/start_profile"
+
+  echo "Starting vLLM profiler on ${endpoint}..."
+
+  if curl -X POST "$url" -w "\nHTTP Status: %{http_code}\n" -s; then
+    echo "✅ Profiler started successfully"
+    echo "💡 Traces will be saved to: ${VLLM_TORCH_PROFILER_DIR:-'(VLLM_TORCH_PROFILER_DIR not set)'}"
+  else
+    echo "❌ Failed to start profiler"
+    echo "💡 Make sure:"
+    echo "   - vLLM server is running on ${endpoint}"
+    echo "   - Server was started with VLLM_TORCH_PROFILER_DIR environment variable set"
+    return 1
+  fi
+}
+
+vllm_profile_stop() {
+  local endpoint="${1:-localhost:8000}"
+  local url="http://${endpoint}/stop_profile"
+
+  echo "Stopping vLLM profiler on ${endpoint}..."
+
+  if curl -X POST "$url" -w "\nHTTP Status: %{http_code}\n" -s; then
+    echo "✅ Profiler stopped successfully"
+    if [[ -n "${VLLM_TORCH_PROFILER_DIR}" ]]; then
+      echo "📊 Check traces in: ${VLLM_TORCH_PROFILER_DIR}"
+      if [[ -d "${VLLM_TORCH_PROFILER_DIR}" ]]; then
+        echo "📁 Recent trace files:"
+        ls -hlt "${VLLM_TORCH_PROFILER_DIR}"/*.json.* 2>/dev/null | head -10 || echo "   No trace files found yet"
+      fi
+    fi
+  else
+    echo "❌ Failed to stop profiler"
+    echo "💡 Make sure vLLM server is running on ${endpoint}"
+    return 1
+  fi
+}
+
+# Convenience aliases for vLLM profiling
+alias vprofile_start='vllm_profile_start'
+alias vprofile_stop='vllm_profile_stop'
+
+# Function to wait for server to be ready
+wait_for_server() {
+  local port=${1:-8000}   # default port 8000
+  local timeout=${2:-300} # Default 5 minutes
+  local count=0
+
+  echo "Waiting for server to be ready on port $port for $timeout seconds..."
+
+  while ! curl -s "http://localhost:$port/health" >/dev/null 2>&1; do
+    sleep 5
+    count=$((count + 5))
+    if [ $count -ge $timeout ]; then
+      echo "Server failed to start within $timeout seconds"
+      return 1
+    fi
+    echo -n "."
+  done
+
+  echo "Server is ready!"
+  return 0
+}
+
+# Function to stop server
+stop_server() {
+  echo "Stopping vLLM server..."
+  pkill -f "vllm serve" || true
+  sleep 5
+}
+
+# vLLM convenience aliases
+alias wait_vllm='wait_for_server'
+alias stop_vllm='stop_server'
+
+# Add local bin to PATH
+export PATH=$HOME/.local/bin:$PATH
+
+# Load local bashrc overrides if they exist
+[ -f "$HOME/.bashrc.local" ] && source "$HOME/.bashrc.local"
