@@ -146,6 +146,7 @@ install_bashrc() {
   step "Installing Bash configuration"
 
   safe_symlink "$DOTFILES_DIR/bash/bashrc" "$HOME/.bashrc"
+  cp /home/ubuntu/.bashrc $HOME/.bashrc.local
 
   info "Bashrc installed!"
   info "Run 'source ~/.bashrc' to reload in current shell"
@@ -169,6 +170,12 @@ install_fzf() {
   info "FZF installed!"
 }
 
+install_git() {
+  step "Installing git"
+  sudo apt install git -y
+  safe_symlink "$DOTFILES_DIR/gitconfig" "$HOME/.bashrc"
+}
+
 # Install Neovim nightly
 install_neovim() {
   step "Installing Neovim nightly"
@@ -179,6 +186,11 @@ install_neovim() {
   fi
 
   bash "$DOTFILES_DIR/scripts/install-neovim.sh"
+}
+
+install_hf_cache() {
+  sudo mkdir /data/numa0/ming_hf_cache
+  sudo chown 1080:1080 /data/numa0/ming_hf_cache
 }
 
 # Check for required tools
@@ -225,6 +237,12 @@ check_dependencies() {
   # Handle optional dependencies
   if [ ${#missing_optional[@]} -ne 0 ]; then
     warn "Optional dependencies not found: ${missing_optional[*]}"
+
+    if [[ " ${missing_optional[*]} " =~ " tmux " ]]; then
+      echo ""
+      warn "Tmux not found. Installing"
+      sudo apt update && sudo apt install tmux just -y
+    fi
 
     # Offer to install neovim if missing
     if [[ " ${missing_optional[*]} " =~ " neovim " ]]; then
@@ -318,6 +336,7 @@ main() {
   install_tmux_config
   install_bashrc
   install_fzf
+  install_hf_cache
 
   print_summary
 }
