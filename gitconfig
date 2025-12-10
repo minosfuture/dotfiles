@@ -1,0 +1,17 @@
+[user]
+  email = minos.future@gmail.com
+  name = Ming Yang
+[alias]
+  st = status
+  am = commit --amend
+  br = branch
+  co = checkout
+  go = checkout
+  d = diff
+  l = log
+  l = log
+  ls = log --stat
+  la = log --pretty=full
+  ll = log --pretty=lone
+  lp = log -p
+  caa = commit -a --amend
