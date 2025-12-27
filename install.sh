@@ -173,7 +173,7 @@ install_fzf() {
 install_git() {
   step "Installing git"
   sudo apt install git -y
-  safe_symlink "$DOTFILES_DIR/gitconfig" "$HOME/.bashrc"
+  safe_symlink "$DOTFILES_DIR/gitconfig" "$HOME/.gitconfig"
 }
 
 # Install Neovim nightly
@@ -189,7 +189,7 @@ install_neovim() {
 }
 
 install_hf_cache() {
-  sudo mkdir /data/numa0/ming_hf_cache
+  sudo mkdir -p /data/numa0/ming_hf_cache
   sudo chown 1080:1080 /data/numa0/ming_hf_cache
 }
 
@@ -218,6 +218,10 @@ check_dependencies() {
     missing_optional+=("make")
   fi
 
+  if ! command -v just &>/dev/null; then
+    missing_optional+=("just")
+  fi
+
   if ! command -v gcc &>/dev/null && ! command -v clang &>/dev/null; then
     missing_optional+=("gcc or clang")
   fi
@@ -241,7 +245,13 @@ check_dependencies() {
     if [[ " ${missing_optional[*]} " =~ " tmux " ]]; then
       echo ""
       warn "Tmux not found. Installing"
-      sudo apt update && sudo apt install tmux just -y
+      sudo apt update && sudo apt install tmux -y
+    fi
+
+    if [[ " ${missing_optional[*]} " =~ " just " ]]; then
+      echo ""
+      warn "just not found. Installing"
+      sudo apt update && sudo apt install just -y
     fi
 
     # Offer to install neovim if missing
