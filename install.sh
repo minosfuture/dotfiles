@@ -222,6 +222,10 @@ check_dependencies() {
     missing_optional+=("just")
   fi
 
+  if ! command -v rg &>/dev/null; then
+    missing_optional+=("ripgrep")
+  fi
+
   if ! command -v gcc &>/dev/null && ! command -v clang &>/dev/null; then
     missing_optional+=("gcc or clang")
   fi
@@ -254,15 +258,17 @@ check_dependencies() {
       sudo apt update && sudo apt install just -y
     fi
 
+    if [[ " ${missing_optional[*]} " =~ " ripgrep " ]]; then
+      echo ""
+      warn "just not found. Installing"
+      sudo apt update && sudo apt install ripgrep -y
+    fi
+
     # Offer to install neovim if missing
     if [[ " ${missing_optional[*]} " =~ " neovim " ]]; then
       echo ""
       warn "Neovim not found. We can install the latest nightly build for you."
-      read -p "Install Neovim nightly? (y/N) " -n 1 -r
-      echo
-      if [[ $REPLY =~ ^[Yy]$ ]]; then
-        INSTALL_NVIM=true
-      fi
+      INSTALL_NVIM=true
     fi
 
     warn "Install them for the full experience:"
@@ -271,14 +277,6 @@ check_dependencies() {
     echo "  RHEL/CentOS:   sudo yum install neovim tmux gcc make"
     echo "  Fedora:        sudo dnf install neovim tmux gcc make"
     echo ""
-
-    if [ "$INSTALL_NVIM" != "true" ]; then
-      read -p "Continue anyway? (y/N) " -n 1 -r
-      echo
-      if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
-      fi
-    fi
   fi
 
   info "All required dependencies found!"
@@ -347,6 +345,7 @@ main() {
   install_bashrc
   install_fzf
   install_hf_cache
+  install_git
 
   print_summary
 }

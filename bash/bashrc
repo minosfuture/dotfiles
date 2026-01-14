@@ -185,3 +185,11 @@ export HF_HOME=/data/numa0/ming_hf_cache
 export FLASHINFER_CACHE_DIR="/data/nfs01/ming/.cache/flashinfer/"
 
 alias j=just
+
+parse_git_branch() {
+  branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+  if [ -n "$branch" ] && [ "$branch" != "HEAD" ]; then
+    echo " ($branch)"
+  fi
+}
+export PS1="\u@\h:\W\[\033[32m\]\$(parse_git_branch)\[\033[00m\]$ "

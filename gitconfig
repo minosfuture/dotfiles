@@ -15,3 +15,6 @@
   ll = log --pretty=lone
   lp = log -p
   caa = commit -a --amend
+
+[pretty]
+  lone = tformat:%C(auto)%h %as %C(green)%>(15,trunc)%an%C(auto)%d %s
