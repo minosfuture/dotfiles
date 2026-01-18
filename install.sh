@@ -145,8 +145,8 @@ install_tmux_config() {
 install_bashrc() {
   step "Installing Bash configuration"
 
+  cp $HOME/.bashrc $HOME/.bashrc.local
   safe_symlink "$DOTFILES_DIR/bash/bashrc" "$HOME/.bashrc"
-  cp /home/ubuntu/.bashrc $HOME/.bashrc.local
 
   info "Bashrc installed!"
   info "Run 'source ~/.bashrc' to reload in current shell"
