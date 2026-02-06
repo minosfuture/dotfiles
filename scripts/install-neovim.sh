@@ -21,7 +21,7 @@ detect_arch() {
   local arch=$(uname -m)
   case "$arch" in
     x86_64 | amd64)
-      echo "linux64"
+      echo "linux-x86_64"
       ;;
     aarch64 | arm64)
       echo "linux-arm64"
