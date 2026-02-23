@@ -37,6 +37,13 @@ warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1"; }
 step() { echo -e "${BLUE}==>${NC} $1"; }
 
+# Use sudo only when not already root
+if [ "$(id -u)" -eq 0 ]; then
+  SUDO=""
+else
+  SUDO="sudo"
+fi
+
 # Safe symlink creation (re-entrant)
 safe_symlink() {
   local source=$1
@@ -172,7 +179,7 @@ install_fzf() {
 
 install_git() {
   step "Installing git"
-  sudo apt install git -y
+  $SUDO apt install git -y
   safe_symlink "$DOTFILES_DIR/gitconfig" "$HOME/.gitconfig"
 }
 
@@ -189,8 +196,8 @@ install_neovim() {
 }
 
 install_hf_cache() {
-  sudo mkdir -p /data/numa0/ming_hf_cache
-  sudo chown 1080:1080 /data/numa0/ming_hf_cache
+  $SUDO mkdir -p /data/numa0/ming_hf_cache || { warn "Could not create HF cache dir (skipping)"; return 0; }
+  $SUDO chown 1080:1080 /data/numa0/ming_hf_cache || true
 }
 
 # Check for required tools
@@ -249,19 +256,19 @@ check_dependencies() {
     if [[ " ${missing_optional[*]} " =~ " tmux " ]]; then
       echo ""
       warn "Tmux not found. Installing"
-      sudo apt update && sudo apt install tmux -y
+      $SUDO apt update && $SUDO apt install tmux -y
     fi
 
     if [[ " ${missing_optional[*]} " =~ " just " ]]; then
       echo ""
       warn "just not found. Installing"
-      sudo apt update && sudo apt install just -y
+      $SUDO apt update && $SUDO apt install just -y
     fi
 
     if [[ " ${missing_optional[*]} " =~ " ripgrep " ]]; then
       echo ""
       warn "just not found. Installing"
-      sudo apt update && sudo apt install ripgrep -y
+      $SUDO apt update && $SUDO apt install ripgrep -y
     fi
 
     # Offer to install neovim if missing
