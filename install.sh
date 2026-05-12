@@ -44,6 +44,25 @@ else
   SUDO="sudo"
 fi
 
+# Detect package manager (prefer dnf over apt)
+if command -v dnf &>/dev/null; then
+  PKG_INSTALL="$SUDO dnf install -y"
+  PKG_UPDATE=""
+elif command -v apt &>/dev/null; then
+  PKG_INSTALL="$SUDO apt install -y"
+  PKG_UPDATE="$SUDO apt update"
+else
+  error "No supported package manager found (dnf or apt)"
+  exit 1
+fi
+
+pkg_install() {
+  if [ -n "$PKG_UPDATE" ]; then
+    $PKG_UPDATE
+  fi
+  $PKG_INSTALL "$@"
+}
+
 # Safe symlink creation (re-entrant)
 safe_symlink() {
   local source=$1
@@ -179,7 +198,7 @@ install_fzf() {
 
 install_git() {
   step "Installing git"
-  $SUDO apt install git -y
+  pkg_install git
   safe_symlink "$DOTFILES_DIR/gitconfig" "$HOME/.gitconfig"
 }
 
@@ -256,19 +275,19 @@ check_dependencies() {
     if [[ " ${missing_optional[*]} " =~ " tmux " ]]; then
       echo ""
       warn "Tmux not found. Installing"
-      $SUDO apt update && $SUDO apt install tmux -y
+      pkg_install tmux || warn "Failed to install tmux (skipping)"
     fi
 
     if [[ " ${missing_optional[*]} " =~ " just " ]]; then
       echo ""
       warn "just not found. Installing"
-      $SUDO apt update && $SUDO apt install just -y
+      pkg_install just || warn "Failed to install just (skipping)"
     fi
 
     if [[ " ${missing_optional[*]} " =~ " ripgrep " ]]; then
       echo ""
-      warn "just not found. Installing"
-      $SUDO apt update && $SUDO apt install ripgrep -y
+      warn "ripgrep not found. Installing"
+      pkg_install ripgrep || warn "Failed to install ripgrep (skipping)"
     fi
 
     # Offer to install neovim if missing
